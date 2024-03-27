@@ -9,21 +9,29 @@ jobs:
   build:
     runs-on: windows-latest  
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
       
-    - name: Download PyInstaller
-      run: |
-        curl -Lo pyinstaller.tar.gz https://github.com/pyinstaller/pyinstaller/releases/download/v4.7/PyInstaller-4.7.tar.gz
-        tar -xzf pyinstaller.tar.gz
-        rm pyinstaller.tar.gz
+      - name: Install Python
+        run: |
+          choco install python --version 3.10.1 -y
+          refreshenv  # Refresh environment variables after installation
+
+      - name: Install Pip
+        run: |
+          python -m ensurepip
+          python -m pip install --upgrade pip
+      
+      - name: Install PyInstaller
+        run: |
+          python -m pip install pyinstaller
+      
+      - name: Build executable
+        run: |
+          pyinstaller --onefile src/order_images.py
         
-    - name: Build executable
-      run: |
-        ./PyInstaller-4.7/pyinstaller.py --onefile src/order_images.py  
-        
-    - name: Upload executable
-      uses: actions/upload-artifact@v2
-      with:
-        name: executable
-        path: dist/order_images.exe
+      - name: Upload executable
+        uses: actions/upload-artifact@v2
+        with:
+          name: executable
+          path: dist/order_images.exe
