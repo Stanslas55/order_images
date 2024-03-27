@@ -18,12 +18,12 @@ jobs:
         tar -xzf pyinstaller.tar.gz
         rm pyinstaller.tar.gz
         
-   - name: Build executable
-     run: |
+    - name: Build executable
+      run: |
         ./PyInstaller-4.7/pyinstaller.py --onefile src/order_images.py  
         
     - name: Upload executable
       uses: actions/upload-artifact@v2
       with:
         name: executable
-        path: dist/order_images
+        path: dist/order_images.exe
