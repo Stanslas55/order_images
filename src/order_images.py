@@ -1,49 +1,52 @@
 import os
+import shutil
 import tkinter as tk
 from tkinter import filedialog
+import re
 
-# Function to check if a file has an image file extension
-def is_image(filename):
-    image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff']
-    return any(filename.lower().endswith(ext) for ext in image_extensions)
+def extract_number(filename):
+    match = re.search(r'\d+', filename)
+    return int(match.group()) if match else float('inf')  # Use infinity for non-numeric filenames
 
-# Function to rename images in a folder
-def rename_images(folder_path):
-    # Get the list of image files in the folder
-    image_files = [f for f in os.listdir(folder_path) if is_image(f)]
-    # Sort the files numerically
-    image_files.sort(key=lambda x: int(os.path.splitext(x)[0]))
+def count_and_rename_images(root_folder, output_folder):
+    # Collect all image file paths
+    image_files = []
+    for subdir, dirs, files in os.walk(root_folder):
+        dirs.sort()  # Sort directories alphabetically
+        sorted_files = sorted(files, key=lambda x: (extract_number(x), x))
+        for file in sorted_files:  # Sort files numerically, then alphabetically
+            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp')):
+                image_files.append(os.path.join(subdir, file))
     
-    # Determine the padding length
-    padding_length = len(str(len(image_files)))
-    
-    # Rename the files with padded numbers
-    for i, filename in enumerate(image_files):
-        # Generate the new filename with padded number
-        new_filename = str(i+1).zfill(padding_length) + os.path.splitext(filename)[1]
-        
-        # Rename the file
-        os.rename(os.path.join(folder_path, filename), os.path.join(folder_path, new_filename))
-        print(f"Renamed {filename} to {new_filename}")
+    # Determine the total number of files
+    total_files = len(image_files)
+    zfill_length = len(str(total_files))
 
-# Function to browse for a folder and initiate renaming process
-def browse_folder():
-    folder_path = filedialog.askdirectory()
-    if folder_path:
-        rename_images(folder_path)
-        status_label.config(text="Images renamed successfully!")
+    # Create output folder if it doesn't exist
+    os.makedirs(output_folder, exist_ok=True)
 
-# Create the main window
-root = tk.Tk()
-root.title("Image Renamer")
+    # Copy and rename files
+    for index, file_path in enumerate(image_files):
+        # Keep the original extension
+        file_extension = os.path.splitext(file_path)[1]
+        new_file_name = f"{str(index + 1).zfill(zfill_length)}{file_extension}"
+        new_file_path = os.path.join(output_folder, new_file_name)
+        shutil.copy2(file_path, new_file_path)
+        print(f"Copied '{file_path}' to '{new_file_path}'")
 
-# Create and pack the browse button
-browse_button = tk.Button(root, text="Browse Folder", command=browse_folder)
-browse_button.pack(pady=10)
+def browse_folder(title):
+    root = tk.Tk()
+    root.withdraw()  # Hide the root window
+    folder_path = filedialog.askdirectory(title=title)
+    return folder_path
 
-# Create and pack the status label
-status_label = tk.Label(root, text="")
-status_label.pack()
-
-# Start the GUI event loop
-root.mainloop()
+if __name__ == "__main__":
+    source_folder = browse_folder("Select the source folder")
+    if not source_folder:
+        print("Source folder selection cancelled.")
+    else:
+        destination_folder = browse_folder("Select the destination folder")
+        if not destination_folder:
+            print("Destination folder selection cancelled.")
+        else:
+            count_and_rename_images(source_folder, destination_folder)
